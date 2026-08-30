@@ -7,6 +7,12 @@ AXI4-Lite로 제어되는 IEEE 1500 컨트롤러(HBM PMBIST 구동) IP의 RTL �
 - 요구는 `docs/requirements.md` 의 추적 ID(REQ-*)로 관리한다. 설계·검증·리뷰는 이 ID를 참조한다.
 - RTL 소스는 `rtl/`, 테스트벤치는 `tb/`, 제약은 `constraints/`, 실행 로그는 `run/` 에 둔다(관례 폴더).
 
+## 버전 관리 (Bitbucket)
+- 버전 관리는 **Bitbucket(Git)** 을 사용한다. 하네스 정의(`.claude/`, `CLAUDE.md`)와 설계 자산(`rtl/`·`tb/`·`constraints/`·`docs/`)을 한 리포지토리에서 코드처럼 버전 관리한다.
+- 변경은 **기능 브랜치 → PR → 리뷰·승인 → 병합**. 보호 브랜치는 Branch permissions/Merge checks로 필수 승인·CI 통과를 강제한다.
+- CI는 **Bitbucket Pipelines**(`bitbucket-pipelines.yml`)에서 `run-lint`/`run-sim`(도입 후 `run-synth`)을 실행하고 결과를 아티팩트로 보존한다. EDA 툴 스텝은 사내 self-hosted 러너에서 실행한다.
+- `rtl-review-team` 리포트는 Bitbucket **PR 코멘트/아티팩트**로 게시한다(자동 병합·자동 승인 금지). 최종 사인오프는 사람 승인.
+
 ## 작업 흐름 (파이프라인)
 요구 정의 → 조사 → 설계 → 구현 → 검증 → 리뷰 → 배포 → 모니터링.
 1. `spec-researcher` 가 요구·디바이스 제약을 정제한다.
