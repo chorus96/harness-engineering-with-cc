@@ -11,7 +11,7 @@
 doc/ip/
 ├── README.md                 ← 이 파일
 ├── CLAUDE.md                 ← 프로젝트 규칙·오케스트레이션 포인터
-├── bitbucket-pipelines.yml   ← Bitbucket CI(mock 공유러너 + live 사내러너) 예시
+├── Jenkinsfile               ← 온프레미스 CI(Bitbucket DC + 사내 Jenkins) 예시
 ├── docs/
 │   └── requirements.md       ← 요구 정의(수용 기준·추적 ID) 예시
 ├── rtl/                      ← 참조 RTL 스텁(SystemVerilog)
