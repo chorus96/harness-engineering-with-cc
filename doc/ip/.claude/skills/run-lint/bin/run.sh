@@ -1,32 +1,61 @@
 #!/usr/bin/env bash
 # run-lint 실행 스킬 — RTL 린트를 실행하고 결과를 JSON으로 구조화.
-# 기본 mock(툴 없이 골격 산출), USE_LIVE_TOOLS=1에서 실제 린트 호출.
+# 기본 mock(툴 없이 골격 산출), USE_LIVE_TOOLS=1에서 실제 린트(Verilator 우선, 없으면 Vivado xvlog).
 # 사용: bash run.sh <rtl_dir> <out_json>
 set -euo pipefail
 RTL_DIR="${1:?rtl dir required}"
 OUT="${2:?out json required}"
 mkdir -p "$(dirname "$OUT")"
 
-if [[ "${USE_LIVE_TOOLS:-0}" == "1" ]]; then
-  # 실제 연동 지점(도입 시 채움). 예:
-  #   verilator --lint-only -Wall -sv "$RTL_DIR"/*.sv 2> run/verilator.log || true
-  #   또는 Vivado: vivado -mode batch -source scripts/lint.tcl
-  # 아래는 로그 파서가 채워야 하는 자리표시자.
-  echo "[run-lint] LIVE 모드는 EDA 연동이 필요합니다. 도입 시 구현하세요." >&2
-  exit 3
-fi
+# RTL 파일 수집(하위 디렉토리 포함)
+mapfile -t SV_FILES < <(find "$RTL_DIR" -name '*.sv' -o -name '*.v' | sort)
+NFILES=${#SV_FILES[@]}
 
-# ---- mock 모드: 툴 없이 골격 산출(하네스 흐름 검증용) ----
-files=$(ls "$RTL_DIR"/*.sv 2>/dev/null | wc -l | tr -d ' ')
-cat > "$OUT" <<JSON
+emit_json() { # $1=tool $2=mode $3=err $4=warn $5=note
+  cat > "$OUT" <<JSON
 {
-  "tool": "mock-lint",
-  "mode": "mock",
+  "tool": "$1",
+  "mode": "$2",
   "rtl_dir": "$RTL_DIR",
-  "files_scanned": $files,
-  "violations": [],
-  "summary": { "critical": 0, "high": 0, "medium": 0, "low": 0 },
-  "note": "mock 산출입니다. 실제 위반은 USE_LIVE_TOOLS=1 연동 후 채워집니다."
+  "files_scanned": $NFILES,
+  "summary": { "errors": $3, "warnings": $4 },
+  "note": "$5"
 }
 JSON
-echo "wrote $OUT (mock, files_scanned=$files)"
+  echo "wrote $OUT ($1/$2: errors=$3 warnings=$4)"
+}
+
+if [[ "${USE_LIVE_TOOLS:-0}" != "1" ]]; then
+  # ---- mock 모드 ----
+  emit_json "mock-lint" "mock" 0 0 "mock 산출. 실제 위반은 USE_LIVE_TOOLS=1 연동 후 채워집니다."
+  exit 0
+fi
+
+# ---- live 모드 ----
+LOG="$(dirname "$OUT")/lint.log"
+if command -v verilator >/dev/null 2>&1; then
+  # Verilator 린트 전용. --top-module은 top 파일명에 맞춰 조정.
+  set +e
+  verilator --lint-only -Wall -Wno-DECLFILENAME -sv \
+    --top-module pmbist_ctrl_top "${SV_FILES[@]}" >"$LOG" 2>&1
+  rc=$?
+  set -e
+  WARN=$(grep -c -E '%Warning' "$LOG" || true)
+  ERR=$(grep -c -E '%Error'   "$LOG" || true)
+  emit_json "verilator" "live" "${ERR:-0}" "${WARN:-0}" "로그: $LOG (rc=$rc)"
+  exit 0
+elif command -v xvlog >/dev/null 2>&1; then
+  # Vivado 파서 기반 컴파일 체크(린트 대용).
+  set +e
+  xvlog -sv "${SV_FILES[@]}" >"$LOG" 2>&1
+  rc=$?
+  set -e
+  ERR=$(grep -c -E 'ERROR'   "$LOG" || true)
+  WARN=$(grep -c -E 'WARNING' "$LOG" || true)
+  emit_json "xvlog" "live" "${ERR:-0}" "${WARN:-0}" "로그: $LOG (rc=$rc)"
+  exit 0
+else
+  echo "[run-lint] LIVE 모드: verilator/xvlog 를 찾을 수 없습니다. 툴 설치 후 재시도하세요." >&2
+  emit_json "none" "live-unavailable" 0 0 "EDA 린트 툴 미설치"
+  exit 3
+fi

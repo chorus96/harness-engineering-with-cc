@@ -13,6 +13,13 @@ doc/ip/
 ├── CLAUDE.md                 ← 프로젝트 규칙·오케스트레이션 포인터
 ├── docs/
 │   └── requirements.md       ← 요구 정의(수용 기준·추적 ID) 예시
+├── rtl/                      ← 참조 RTL 스텁(SystemVerilog)
+│   ├── axil_csr.sv           ← AXI4-Lite 슬레이브 CSR
+│   ├── ieee1500_ctrl.sv      ← IEEE 1500 WSC 생성 FSM
+│   ├── pmbist_ctrl_top.sv    ← 상위 결선(+aclk↔wrck CDC)
+│   └── cdc/sync2ff.sv        ← 2-FF 동기화기
+├── tb/
+│   └── tb_smoke.sv           ← 스모크 TB(Verilator/xsim 호환, 자기검증)
 ├── run/
 │   └── checklist.md          ← 파일럿 진행 체크리스트
 └── .claude/
@@ -47,9 +54,14 @@ Claude Code를 이 폴더에서 열고(에이전트·스킬 디스커버리 대�
 ```sh
 # mock 실행(툴 없이 산출 확인)
 bash .claude/skills/run-lint/bin/run.sh rtl/ run/lint.json
-# 실제 EDA 연동은 도입 시:
-USE_LIVE_TOOLS=1 bash .claude/skills/run-lint/bin/run.sh rtl/ run/lint.json
+bash .claude/skills/run-sim/bin/run.sh  tb/  run/sim.json
+
+# 실제 EDA 연동(툴 자동 감지: Verilator 우선, 없으면 Vivado xvlog/xsim)
+USE_LIVE_TOOLS=1 bash .claude/skills/run-lint/bin/run.sh rtl/ run/lint.json   # verilator --lint-only
+USE_LIVE_TOOLS=1 bash .claude/skills/run-sim/bin/run.sh  tb/  run/sim.json    # verilator --binary / xsim
 ```
+
+> 참조 RTL(`rtl/`)과 TB(`tb/`)는 문법적으로 유효한 SystemVerilog 예시입니다. Verilator(`--binary --timing`)나 Vivado(`xvlog/xelab/xsim`)가 설치된 환경에서 위 live 명령으로 실제 린트·시뮬을 수행합니다. TB는 `TB_RESULT: PASS/FAIL` 마커를 출력해 스크립트가 결과를 파싱합니다.
 
 > 상세 개념은 [`doc/목차.md`](../목차.md), 예제 패턴은 [`doc/예제코드.md`](../예제코드.md), 배경은 [`doc/제안서.md`](../제안서.md) 참고.
 > AMD·Xilinx·Vivado, IEEE 1500, AXI는 각 소유자의 상표/표준입니다. 본 예제는 교육용 골격입니다.
