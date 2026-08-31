@@ -48,4 +48,42 @@
 
 ---
 
+## 멀티 에이전트 프레임워크 — AutoGen · CrewAI (· LangGraph)
+
+여러 AI 에이전트가 **협업하도록 코드로 짜는 오케스트레이션 프레임워크**들. Claude Code 하네스와 목표(멀티 에이전트 협업)는 겹치지만, **코드 프레임워크**라는 점이 다르다.
+
+### AutoGen (Microsoft)
+- 여러 **대화형 에이전트(conversable agents)** 가 **메시지를 주고받으며** 문제를 푸는 것이 기본 추상화.
+- 대표 구성: `AssistantAgent`(LLM), `UserProxyAgent`(코드 실행/사람 대리), `GroupChat` + `GroupChatManager`(발화 순서 조율).
+- 강점: **코드 실행 루프**(작성→실행→관찰→수정)와 유연한 대화·인간 개입(human-in-the-loop).
+- 근황: 이벤트 기반 재설계(0.4+) 후 Semantic Kernel과 수렴하는 **Microsoft Agent Framework** 방향으로 재편 중(명칭·API 변화 잦음 — 공식 문서 확인).
+
+### CrewAI
+- **역할(role)·목표(goal)·배경(backstory)** 를 가진 **Agent** + **Task** 를 **Crew(팀)** 로 묶어 실행. "역할 기반 팀" 은유.
+- 실행 방식: **Crews**(순차·계층 프로세스 협업) / **Flows**(결정론적 이벤트 기반 워크플로).
+- 강점: 직관적 추상화(역할·태스크·크루)로 빠른 팀 구성.
+
+### 비교
+
+| 항목 | AutoGen (Microsoft) | CrewAI |
+|---|---|---|
+| 핵심 은유 | 에이전트 간 **대화** | **역할 기반 팀(crew)** |
+| 조율 | GroupChat/Manager, 이벤트 기반(0.4+) | Process(순차·계층) + Flows |
+| 강점 | 코드 실행 루프, 유연한 대화·인간 개입 | 직관적 역할·태스크 모델, 빠른 구성 |
+| 언어 | 주로 Python | 주로 Python |
+
+> 함께 거론되는 **LangGraph**(LangChain 계열): 그래프/상태 기반 오케스트레이션으로 분기·순환·체크포인트가 강점.
+
+### 하네스 엔지니어링과의 관계 (같은 문제, 다른 형태)
+| | AutoGen · CrewAI · LangGraph | Claude Code 하네스 (본 책/저장소) |
+|---|---|---|
+| 형태 | 개발자가 **Python 코드**로 에이전트·흐름 조립 | 파일(`.claude/agents`·`skills`·`CLAUDE.md`)로 **선언** |
+| 트리거 | 코드 실행 | **자연어** 요청(스킬 `description`) |
+| 관점 | 코드 프레임워크 | "Agent = Model + **Harness**"(→ [`하네스자료.md`](./하네스자료.md) 7절) |
+
+> 한 줄 정리: **"여러 에이전트를 협업시킨다"는 문제는 같고**, AutoGen·CrewAI·LangGraph는 이를 **코드 프레임워크**로, Claude Code 하네스는 **파일 규약**으로 푼다.
+> 주의: 이 프레임워크들은 버전·명칭 변화가 빠르다 — 도입 시 각 공식 문서에서 최신 API를 확인할 것.
+
+---
+
 > 수집 시점: 2026-08. 일반 개념 설명으로, 특정 모델의 구현 세부는 각 제공사 문서를 확인하세요.
